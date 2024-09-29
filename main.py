@@ -14,13 +14,29 @@ from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+
+
+"""
+#####################################################       Считывание конфигурационного файла      ####################
+
 
 with open('config.json') as config_file:
     config = json.load(config_file)
 
 TOKEN = config['TELEGRAM_TOKEN']
 API_KEY = config['API_KEY']
+
+
 ######################################################      Ботоводство     ############################################
+
 
 
 bot = Bot(token=TOKEN)
@@ -131,9 +147,76 @@ async def main() -> None:
     # And the run events dispatching
     await dp.start_polling(bot)
 
+"""
+####################################################        Запросы к барузеру      ####################################
+
+
+
+# Настройки для headless режима (запуск без GUI)
+chrome_options = Options()
+chrome_options.add_argument("--headless")  # Запуск в headless режиме
+chrome_options.add_argument("--window-size=1920x1080")
+chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36")
+chrome_options.add_argument("--disable-gpu")  # отключаем GPU для headless режима
+
+
+# Путь к драйверу
+path_to_driver = r"C:\Users\abrac\Desktop\chromedriver-win64\chromedriver.exe"
+
+# Инициализация службы ChromeDriver
+service = Service(path_to_driver)
+
+# Инициализация драйвера
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+
+# Открываем страницу
+driver.get('https://yandex.ru/maps/213/moscow/?ll=37.611974%2C55.750263&mode=routes&rtext=55.754974%2C37.573147~55.724164%2C37.618768~55.742152%2C37.619013~55.748737%2C37.604714~55.752551%2C37.586847~55.760214%2C37.577218&rtt=auto&ruri=ymapsbm1%3A%2F%2Forg%3Foid%3D1222602059~ymapsbm1%3A%2F%2Forg%3Foid%3D1117587817~~~~ymapsbm1%3A%2F%2Ftransit%2Fstop%3Fid%3Dstation__9858831&z=14.27')
+
+# Сохраняем первоначальный URL
+initial_url = driver.current_url
+
+
+time.sleep(2)
+# Ищем кнопку и кликаем по ней
+# Ожидание появления кнопки
+button = WebDriverWait(driver, 10).until(
+    EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[11]/div/div[1]/div[1]/div[1]/div/div[1]/div/div/div[1]/form/div[3]/div[2]'))
+)
+
+# Клик по кнопке
+button.click()
+
+# Ищем кнопку и кликаем по ней
+# Ожидание появления кнопки
+button = WebDriverWait(driver, 10).until(
+    EC.element_to_be_clickable((By.XPATH, '/html/body/div[7]/div[2]/div/div[2]/button'))
+)
+
+# Клик по кнопке
+button.click()
+
+for i in range(15):
+    if initial_url != driver.current_url:
+        current_url = driver.current_url
+        print(f"Измененная ссылка: {current_url}")
+        # Закрываем браузер
+        driver.quit()
+        break
+    else:
+        time.sleep(1)
+
+
+
+
+
+
+
+
+
 ######################################################      Функции         ############################################
 
-
+"""
 def get_cords(location_name):
     # Запросы к API
     response_location = requests.get(
@@ -165,6 +248,7 @@ def get_cords(location_name):
     return location_cords
 
 
+
 def make_link(places_cords):
     link = f"https://yandex.ru/maps/?rtext="
 
@@ -176,7 +260,8 @@ def make_link(places_cords):
 
     return link
 
-
+"""
+"""
 def poisk(graph):
     route = [0] * (len(graph) - 1)
     route = [1] + route
@@ -244,7 +329,7 @@ def get_key(value, sl, possible):
 
 
 """
-
+"""
 def get_points_in_order(points, max_time, type_0="jam"):
     def get_distance_between_two(first_point, second_point):
 
@@ -382,7 +467,7 @@ for i in range(len(input_places)):
 #############################################################       заполнение графов       ############################
 
 
-
+"""
 def total_route(input_places):
 
     names = {}
@@ -418,13 +503,14 @@ def total_route(input_places):
         total_route.append(names[i])
 
     return total_route
-
+"""
 
 # Москва, Псковская, 11
 #Москва, Рязанский проспект, 10
 #Долгопрудный, Лётная, 8
 
-
+"""
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
+"""
