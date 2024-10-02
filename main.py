@@ -3,7 +3,6 @@ import json
 import sys
 import asyncio
 import logging
-import black
 import time
 
 
