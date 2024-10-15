@@ -123,6 +123,22 @@ def get_chat(user_message):
         print(f"error {e}")
         return -1
 
+###передается промпт и два ключа: 1й - информация основная или уточняющая, 2й - какой критерий мы просим найти
+def prompt_processing(prompt, key1, key2):
+    with open("responce.json", 'r') as f:
+        d = json.load(f) #получение словаря промтов
+        print(d[key1][key2])
+        answer = get_chat(prompt + d[key1][key2]).json()["choices"][0]["message"]["content"]
+        print(answer)
+        return answer
+
+
+###получение словаря
+def slovarik(data):
+    ans = {}
+    for i in data.split('\n'):
+        ans[i.split(': ')[0]] = i.split(': ')[1]
+    return ans
 
 def general_recognition(prompt):
     prompt = (
@@ -159,13 +175,29 @@ def cafe(cafe, place):
     return answer.json()["choices"][0]["message"]["content"]
 
 
+def interesting_places(data):
+    places = data["место"]
+    print(places)
+    prompt = (f"{places} по заданным местам предложи мне по одному интересному месту, которое можно посмотреть в выше перечислленых местах. "
+              f"выведи в формате: Место: интересное место. Каждое новое место выводи с новой строки")
+    ans = get_chat(prompt).json()["choices"][0]["message"]["content"]
+    print(ans)
+    print(type(ans))
+    """
+    data_interest = {}
+    for i in ans.split('\n'):
+        data_interest[i.split(': ')[0]] = i.split(': ')[1].strip('-')
+    return data_interest
+    """
+    return ans
+
+
+
 def place_of_intrerest(data_general):
-    places = ", ".join(data_general["место"])
+    places = data_general["место"]
+    print(places)
     prompt = (
-        f"Привет, представь себя экскурсоводом-экспертом по Москве и помоги мне пожалуйста. "
-        f"У меня есть различные места: {places}, и тебе нужно сказать мне, что конкретно там можно интересного посмотреть "
-        f"(от 1 до 3 объектов интереса). "
-        f"Выведи в формате 'Место':'Объект инетереса', начало каждого пункта обозначь '-' "
+        f"Представь, что ты гид по Москве. Тебе нужно сказать мне, что конкретно можно интересного посмотреть 1 обьект интереса в районе {places} Выведи в формате -'Место': - 'Объект инетереса', например Кремль : - ГУМ "
     )
 
     # Получаем ответ
@@ -176,8 +208,14 @@ def place_of_intrerest(data_general):
 
     text = answer.json()["choices"][0]["message"]["content"]
 
+    data_places_interest = {}
+    for i in text.split('\n\n'):
+        i = i.split(':\n')
+        data_places_interest[i[0].strip(':')] = i[1].strip('-').split(';\n- ')
+    print(data_places_interest)
+    """
     # Разбиваем текст по строкам и пробелам
-    places_data = text.strip().split("\n\n")
+    places_data = text.strip().split("\n")
 
     # Инициализируем словарь для хранения мест и объектов интереса
     data_places_interest = {}
@@ -192,9 +230,8 @@ def place_of_intrerest(data_general):
         ]
 
     return data_places_interest
-
-
-
+    """
+    return data_places_interest
 
 """
 prompt = "Привет, я хочу прогуляться по ценрту Москвы. Хочу зайти в кремль, парк горького, потом перекусить в италианском кафе, и на последок посмотреть закат с крыши небосркеба в москва сити"

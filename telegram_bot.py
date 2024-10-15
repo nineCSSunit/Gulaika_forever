@@ -20,6 +20,9 @@ from browser import get_good_route
 from two_gis_API import generate_map_link
 from giga_chat_API import general_recognition
 from giga_chat_API import place_of_intrerest
+from giga_chat_API import prompt_processing
+from giga_chat_API import slovarik
+from giga_chat_API import interesting_places
 
 
 #####################################################       Считывание конфигурационного файла      ####################
@@ -66,9 +69,14 @@ async def handle_prompt_input(message: Message, state: FSMContext):
     # Отправляем подтверждение пользователю
     await message.answer(f"Ваш промпт сохранен: {prompt_text}")
 
-
-    await message.answer(general_recognition(prompt_text))
-    await message.answer(place_of_intrerest(general_recognition(prompt_text)))
+    d = prompt_processing(prompt_text, "base", "base")
+    await message.answer(d)
+    ##отбработка словаря
+    d = slovarik(d)
+    ###сделано в черновом варианте будет дорабатываться
+    if d['где поесть'] != "нет информации":
+        await message.answer(f"Могу предложить следующие кафе: {prompt_processing(prompt_text, 'base', 'cafe')}")
+    await message.answer(interesting_places(d))
 
     # Сбрасываем состояние
     await state.clear()
