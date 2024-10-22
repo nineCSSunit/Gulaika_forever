@@ -123,6 +123,22 @@ def get_chat(user_message):
         print(f"error {e}")
         return -1
 
+###передается промпт и два ключа: 1й - информация основная или уточняющая, 2й - какой критерий мы просим найти
+def prompt_processing(prompt, key1, key2):
+    with open("responce.json", 'r') as f:
+        d = json.load(f) #получение словаря промтов
+        print(d[key1][key2])
+        answer = get_chat(prompt + d[key1][key2]).json()["choices"][0]["message"]["content"]
+        print(answer)
+        return answer
+
+
+###получение словаря
+def slovarik(data):
+    ans = {}
+    for i in data.split('\n'):
+        ans[i.split(': ')[0]] = i.split(': ')[1]
+    return ans
 
 
 
