@@ -37,29 +37,22 @@ def get_good_route(link):
         # Ищем кнопку и кликаем по ней
         # Ожидание появления кнопки
         try:
-            button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        "/html/body/div[1]/div[2]/div[11]/div/div[1]/div[1]/div[1]/div/div[1]/div/div/div[1]/form/div[3]/div[2]",
-                    )
-                )
+            # Попытка найти кнопку с текстом "Оптимизировать" и нажать на неё
+            optimize_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//div[@class='route-form-view__optimize' and @role='button']"))
             )
+            optimize_button.click()
 
-            # Клик по кнопке
-            button.click()
-
-            # Ищем кнопку и кликаем по ней
-            # Ожидание появления кнопки
-
-            button = WebDriverWait(driver, 10).until(
+            # Попытка найти кнопку с текстом "Да" и нажать на неё
+            yes_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
-                    (By.XPATH, "/html/body/div[7]/div[2]/div/div[2]/button")
-                )
+                    (By.XPATH, "//div[@class='route-optimize-banner__button']//button[.//span[text()='Да']]"))
             )
+            yes_button.click()
 
-            # Клик по кнопке
-            button.click()
+            # Ждать, пока обновится страница и изменится ссылка
+            WebDriverWait(driver, 10).until(EC.url_changes(url))
+
         except Exception as e:
             print(e)
         current_url = driver.current_url
@@ -76,3 +69,4 @@ def get_good_route(link):
         return current_url
     except Exception as e:
         return e
+

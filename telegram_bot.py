@@ -20,6 +20,9 @@ from browser import get_good_route
 from two_gis_API import generate_map_link
 from giga_chat_API import general_recognition
 from giga_chat_API import place_of_intrerest
+from giga_chat_API import prompt_processing
+from giga_chat_API import slovarik
+from giga_chat_API import interesting_places
 
 
 #####################################################       Считывание конфигурационного файла      ####################
@@ -45,9 +48,15 @@ class PointForm(StatesGroup):
     intermediate_points = State()  # Состояние для ввода промежуточных точек
     end_point = State()  # Состояние для ввода конечной точки
 
+
 # Определяем состояния (машина состояний)
 class PromptStates(StatesGroup):
     waiting_for_prompt = State()
+    waiting_for_start_point = State()
+    waiting_for_end_point = State()
+    waiting_for_time = State()
+    waiting_for_metro = State()
+    waiting_for_area = State()
 
 
 # Хендлер на команду /prompt
@@ -57,6 +66,7 @@ async def handle_prompt_command(message: Message, state: FSMContext):
     # Устанавливаем состояние ожидания промпта
     await state.set_state(PromptStates.waiting_for_prompt)
 
+
 # Хендлер для обработки введенного промпта
 @dp.message(PromptStates.waiting_for_prompt)
 async def handle_prompt_input(message: Message, state: FSMContext):
@@ -65,13 +75,187 @@ async def handle_prompt_input(message: Message, state: FSMContext):
 
     # Отправляем подтверждение пользователю
     await message.answer(f"Ваш промпт сохранен: {prompt_text}")
+    d = prompt_processing(prompt_text, "base", "base")
+    await message.answer(d)
+
+    # Обработка словаря
+    d = slovarik(d)
+    await state.update_data(prompt_data=d)
+
+    # Проверяем, какую информацию нужно уточнить
+    if d['начальная точка'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите начальную точку.")
+        await state.set_state(PromptStates.waiting_for_start_point)
+    elif d['конечная точка'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите конечную точку.")
+        await state.set_state(PromptStates.waiting_for_end_point)
+    elif d['время'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите время.")
+        await state.set_state(PromptStates.waiting_for_time)
+    elif d['метро'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите ближайшее метро.")
+        await state.set_state(PromptStates.waiting_for_metro)
+    elif d['район'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите район.")
+        await state.set_state(PromptStates.waiting_for_area)
+    else:
+        await finish_process(message, state)
 
 
-    await message.answer(general_recognition(prompt_text))
-    await message.answer(place_of_intrerest(general_recognition(prompt_text)))
+# Хендлер для получения начальной точки
+@dp.message(PromptStates.waiting_for_start_point)
+async def handle_start_point(message: Message, state: FSMContext):
+    user_data = await state.get_data()
+    prompt_data = user_data['prompt_data']
 
-    # Сбрасываем состояние
+    data_processing = prompt_processing(message.text, "additional", "start")
+    print(data_processing)
+
+
+
+    # Обновляем начальную точку
+    prompt_data['начальная точка'] = data_processing
+    await state.update_data(prompt_data=prompt_data)
+
+    # Проверяем, что нужно уточнить дальше
+    if prompt_data['конечная точка'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите конечную точку.")
+        await state.set_state(PromptStates.waiting_for_end_point)
+    else:
+        await finish_process(message, state)
+
+
+# Хендлер для получения конечной точки
+@dp.message(PromptStates.waiting_for_end_point)
+async def handle_end_point(message: Message, state: FSMContext):
+    user_data = await state.get_data()
+    prompt_data = user_data['prompt_data']
+
+    data_processing = prompt_processing(message.text, "additional", "end")
+    print(data_processing)
+
+
+    # Обновляем конечную точку
+    prompt_data['конечная точка'] = data_processing
+    await state.update_data(prompt_data=prompt_data)
+
+    # Проверяем, что нужно уточнить дальше
+    if prompt_data['время'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите время.")
+        await state.set_state(PromptStates.waiting_for_time)
+    else:
+        await finish_process(message, state)
+
+
+# Хендлер для времени
+@dp.message(PromptStates.waiting_for_time)
+async def handle_time(message: Message, state: FSMContext):
+    user_data = await state.get_data()
+    prompt_data = user_data['prompt_data']
+
+    # Обновляем время
+    prompt_data['время'] = message.text
+    await state.update_data(prompt_data=prompt_data)
+
+    # Проверяем, что нужно уточнить дальше
+    if prompt_data['метро'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите ближайшее метро.")
+        await state.set_state(PromptStates.waiting_for_metro)
+    else:
+        await finish_process(message, state)
+
+
+# Хендлер для метро
+@dp.message(PromptStates.waiting_for_metro)
+async def handle_metro(message: Message, state: FSMContext):
+    user_data = await state.get_data()
+    prompt_data = user_data['prompt_data']
+
+    # Обновляем метро
+    prompt_data['метро'] = message.text
+    await state.update_data(prompt_data=prompt_data)
+
+    # Проверяем, что нужно уточнить дальше
+    if prompt_data['район'] == 'нет информации':
+        await message.answer("Пожалуйста, укажите район.")
+        await state.set_state(PromptStates.waiting_for_area)
+    else:
+        await finish_process(message, state)
+
+
+# Хендлер для района
+@dp.message(PromptStates.waiting_for_area)
+async def handle_area(message: Message, state: FSMContext):
+    user_data = await state.get_data()
+    prompt_data = user_data['prompt_data']
+
+    # Обновляем район
+    prompt_data['район'] = message.text
+    await state.update_data(prompt_data=prompt_data)
+
+    # Завершаем уточнение
+    await finish_process(message, state)
+
+
+# Финальная функция для завершения процесса уточнения
+async def finish_process(message: Message, state: FSMContext):
+    user_data = await state.get_data()
+    prompt_data = user_data['prompt_data']
+
+    # Выводим итоговую информацию
+    await message.answer(f"Спасибо! Вот окончательная информация:\n{prompt_data}")
+
+    await message.answer("Вот ваш маршрут: ")
+    # Получаем все данные
+
+    start_point = prompt_data['начальная точка']
+    intermediate_points = prompt_data['место'].split(', ')
+    end_point = prompt_data['конечная точка']
+
+    # Формируем и выводим список всех точек
+    points = (
+            [f"Начальная: {start_point}"]
+            + [f"Промежуточная: {point}" for point in intermediate_points]
+            + [f"Конечная: {end_point}"]
+    )
+
+    await message.answer("\n".join(points))
+
+    points = [start_point] + intermediate_points + [end_point]
+    link = get_good_route(generate_map_link(points))
+
+    await message.answer(link)
+
+    # Здесь можно добавить дополнительные действия
     await state.clear()
+
+
+@dp.message(Command("route_prompt"))
+async def aboba(message: Message, state: FSMContext):
+    await message.answer("Вот ваш маршрут: ")
+    # Получаем все данные
+    data = await state.get_data()
+    start_point = data.get('начальная точка')
+    intermediate_points = data.get('место', [])
+    end_point = data.get('конечная точка')
+
+    # Формируем и выводим список всех точек
+    points = (
+            [f"Начальная: {start_point}"]
+            + [f"Промежуточная: {point}" for point in intermediate_points]
+            + [f"Конечная: {end_point}"]
+    )
+
+    await message.answer("\n".join(points))
+
+    points = [start_point] + intermediate_points + [end_point]
+    link = get_good_route(generate_map_link(points))
+
+    await message.answer(link)
+
+
+
+
 @dp.message(Command("get_route"))
 async def start(message: Message, state: FSMContext):
     await message.answer("Введите начальную точку:")
