@@ -1,3 +1,13 @@
+
+"""
+
+Этот модуль организует запросы к браузеру, осноная функция - получение оптимизированного маршрута.
+
+
+"""
+
+
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -20,7 +30,7 @@ def get_good_route(link):
         # chrome_options.add_argument("--disable-gpu")  # отключаем GPU для headless режима
 
         # Путь к драйверу
-        path_to_driver = r"C:\Users\abrac\Desktop\chromedriver-win64\chromedriver.exe"
+        path_to_driver = r"C:\Users\SuperHaka\Desktop\chromedriver-win64\chromedriver.exe"
 
         # Инициализация службы ChromeDriver
         service = Service(path_to_driver)
@@ -30,20 +40,22 @@ def get_good_route(link):
 
         # Открываем страницу
         driver.get(link)
+
         # Сохраняем первоначальный URL
         initial_url = driver.current_url
 
+        # Ожидание пока прогрузится браузер
         time.sleep(2)
+
         # Ищем кнопку и кликаем по ней
-        # Ожидание появления кнопки
         try:
-            # Попытка найти кнопку с текстом "Оптимизировать" и нажать на неё
+            # Попытка найти кнопку "Оптимизировать" и нажать на неё
             optimize_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.XPATH, "//div[@class='route-form-view__optimize' and @role='button']"))
             )
             optimize_button.click()
 
-            # Попытка найти кнопку с текстом "Да" и нажать на неё
+            # Попытка найти кнопку "Да" и нажать на неё
             yes_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//div[@class='route-optimize-banner__button']//button[.//span[text()='Да']]"))
@@ -51,7 +63,7 @@ def get_good_route(link):
             yes_button.click()
 
             # Ждать, пока обновится страница и изменится ссылка
-            WebDriverWait(driver, 10).until(EC.url_changes(url))
+            WebDriverWait(driver, 10).until(EC.url_changes(initial_url)) # была ошибка, стояло url, не обозначенное ранее.
 
         except Exception as e:
             print(e)

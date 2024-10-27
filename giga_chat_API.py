@@ -1,3 +1,11 @@
+
+"""
+
+Этот модуль организует запросы к API Giga Chat
+
+"""
+
+
 import requests
 import uuid
 import json
@@ -5,11 +13,12 @@ import time
 import urllib3
 
 
-urllib3.disable_warnings()
+urllib3.disable_warnings()   # что бы мин.циры не капало на мозги, так как мы не проверяем ?индефикатор?
+                                # Честно, советую пофиксить, так как выглядит как лютый траб с безой
+                                # To Do : Разобраться с этими предупрежедениями
 
 
 ####################################################       Считывание конфигурационного файла      ####################
-
 
 with open("config.json") as config_file:
     config = json.load(config_file)
@@ -18,23 +27,28 @@ GIGACHAT_API_KEY = config["GIGACHAT_API_KEY"]
 
 ####################################################       Нейронки         ############################################
 
-"""
+"""                              На самом деле Гига чат просит кодировать токен .... Но нам пофек, тем не мение,  нужно фиксить 
 ###  Кодируем ключ тут   ###
 
 base64_credentials = base64.b64encode(GIGACHAT_API_KEY.encode('utf-8')).decode('utf-8')   #если не получится убери utf
 
 """
 
+# Глобальные переменные для хранения временного токена и времени его истечения
+giga_token = None
+token_expires_at = 0  # Время истечения токена в секундах
 
-#                                       получение временного токена
+
+
+#                                       Получение временного токена
 def get_token(base64_credentials):
-    #                            создание индентификатора UUID
+    #                                   Создание индентификатора UUID
     rq_uid = str(uuid.uuid4())
 
     #                   API URL
     url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
 
-    #                 заголовки
+    #                 Заголовки
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json",
@@ -42,7 +56,7 @@ def get_token(base64_credentials):
         "Authorization": f"Basic {base64_credentials}",
     }
 
-    #               тело запроса
+    #               Тело запроса
     payload = {"scope": "GIGACHAT_API_PERS"}
     try:
         #           Делаем post запрос
@@ -52,11 +66,6 @@ def get_token(base64_credentials):
         print(f"error {e}")
         return -1
 
-
-
-# Глобальные переменные для хранения токена и времени его истечения
-giga_token = None
-token_expires_at = 0  # Время истечения токена в секундах
 
 # Функция для получения действующего токена
 def get_valid_token(api_key):
@@ -76,12 +85,8 @@ def get_valid_token(api_key):
     return giga_token
 
 
-
-
-
-
-#     получение ответа на запрос пользователя
-#       возвращает ответ от api в виде текстовой строки
+#       Получение ответа на текстовый запрос
+#       Возвращает ответ от api в виде текстовой строки
 
 def get_chat(user_message):
     get_valid_token(GIGACHAT_API_KEY)
@@ -113,7 +118,7 @@ def get_chat(user_message):
         "Accept": "application/json",  # получаем json
         "Authorization": f"Bearer {giga_token}",
     }
-    # Выполнение  POST запроса и получение ответа
+    # Выполнение POST запроса и получение ответа
     try:
         response = requests.request(
             "POST", url, headers=headers, data=payload, verify=False
@@ -123,9 +128,14 @@ def get_chat(user_message):
         print(f"error {e}")
         return -1
 
-###передается промпт и два ключа: 1й - информация основная или уточняющая, 2й - какой критерий мы просим найти
+
+# функция для создания полноценного промта по заданным маскам и его отправление API
+# Передается промпт(просто строка) и два ключа:
+# 1й - информация основная или уточняющая,
+# 2й - какой критерий мы просим найти
+# На выходе выдает строку - ответ от API
 def prompt_processing(prompt, key1, key2):
-    with open("responce.json", 'r') as f:
+    with open("responce.json", 'r', encoding="utf-8") as f:
         d = json.load(f) #получение словаря промтов
         print(d[key1][key2])
         answer = get_chat(prompt + d[key1][key2]).json()["choices"][0]["message"]["content"]
@@ -133,34 +143,14 @@ def prompt_processing(prompt, key1, key2):
         return answer
 
 
-###получение словаря
+# получение словаря
 def slovarik(data):
     ans = {}
     for i in data.split('\n'):
         ans[i.split(': ')[0]] = i.split(': ')[1]
     return ans
 
-
-
-###передается промпт и два ключа: 1й - информация основная или уточняющая, 2й - какой критерий мы просим найти
-def prompt_processing(prompt, key1, key2):
-    with open("responce.json", 'r', encoding='utf-8') as f:
-        d = json.load(f) #получение словаря промтов
-        print(d[key1][key2])
-        prompt_1 = prompt + d[key1][key2]
-        print(prompt_1)
-        answer = get_chat(prompt_1).json()["choices"][0]["message"]["content"]
-        print(answer)
-        return answer
-
-
-###получение словаря
-def slovarik(data):
-    ans = {}
-    for i in data.split('\n'):
-        ans[i.split(': ')[0]] = i.split(': ')[1]
-    return ans
-
+# Функция основного распознования , УСТАРЕЛА, заменена на prompt_processing
 def general_recognition(prompt):
     prompt = (
         "«"
@@ -185,7 +175,7 @@ def general_recognition(prompt):
         data_general[s[0]] = value
     return data_general
 
-
+# Функция предложения кафе в районе
 def cafe(cafe, place):
     prompt = (
         f"Привет, помоги мне пожалуйста. Представь себя Экспертом по кафе и ресторанам в Москве, и расскажи какие"
@@ -195,7 +185,7 @@ def cafe(cafe, place):
     answer = get_chat(prompt)
     return answer.json()["choices"][0]["message"]["content"]
 
-
+# Функция предложения интересных мест пользователю
 def interesting_places(data):
     places = data["место"]
     print(places)
@@ -269,10 +259,9 @@ print(general_data, "\n\n\n", place_data)
 if 'Где поесть' in data_general.keys():
     answer = cafe(data_general['Где поесть'], data_general['Место'], giga_token)
     print(answer)
-"""
 
 
-"""
+
 ### получение интересных мест ###
 places = ', '.join(data_general['Место'])
 prompt_data = f"Привет, представь себя экскурсоводом-экспертом по Москве и помоги мне пожалуйста . У меня есть различные места: {places} и тебе нужно сказать мне, что конкретно там можно интересного посмотреть (от 1 до 3 объектов интереса) . Выведи в формате 'Место':'Объект инетереса', начало каждого пункта обозначь - "
@@ -283,10 +272,9 @@ for i in answer.json()['choices'][0]['message']['content'].split('\n\n'):
     i = i.split(':\n')
     data_places_interest[i[0].strip(':')] = i[1].strip('-').split(';\n- ')
 print(data_places_interest)
-"""
 
 
-"""
+
 #получение списка доспупных моделей
 url = 'https://gigachat.devices.sberbank.ru/api/v1/models'
 
@@ -298,10 +286,10 @@ headers = {
 
 response = requests.request("GET", url, headers=headers, data=payload, verify=False)
 print(response.text)
-"""
 
 
-"""
+
+
 ### получение ключевых слов по категориям ###
 message = '«Привет! Я хочу прогуляться по Москве с друзьями! У меня есть всего 3 часа. Хочу зайти во французское кафе, пройтись по старому Арбату, Москва-сити и придти к метро  беблиотека им ленина.» Найди ключевые слова и раздели их по категориям: город, где поесть, метро, время, место. Напиши мне только слова разделенные по категориям'
 answer = get_chat(giga_token, message)
