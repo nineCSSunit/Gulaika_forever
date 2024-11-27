@@ -4,14 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="76ff63bb-8a85-4e84-b5a8-4b7b5c58821a" name="Changes" comment="Beta - Замена distance_matrix на &quot;Оптимизировать&quot; в браузере">
-      <change beforePath="$PROJECT_DIR$/.idea/Gulaika_forever.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Gulaika_forever.iml" afterDir="false" />
+    <list default="true" id="76ff63bb-8a85-4e84-b5a8-4b7b5c58821a" name="Changes" comment="Завершен основной функционал Alpha and Omega">
+      <change afterPath="$PROJECT_DIR$/phrases.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/browser.py" beforeDir="false" afterPath="$PROJECT_DIR$/browser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/giga_chat_API.py" beforeDir="false" afterPath="$PROJECT_DIR$/giga_chat_API.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/responce.json" beforeDir="false" afterPath="$PROJECT_DIR$/responce.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/telegram_bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/telegram_bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/token_manager.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/two_gis_API.py" beforeDir="false" afterPath="$PROJECT_DIR$/two_gis_API.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,6 +48,7 @@
     &quot;Python.giga_chat_API.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.telegram_bot.executor&quot;: &quot;Run&quot;,
+    &quot;Python.two_gis_API.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/abrac/PycharmProjectss/teet&quot;
@@ -109,12 +110,32 @@
       <option name="project" value="LOCAL" />
       <updated>1727621840426</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Завершен основной функционал Alpha and Omega">
+      <option name="closed" value="true" />
+      <created>1729611400436</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1729611400436</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Первый Коммит" />
     <MESSAGE value="Beta - Замена distance_matrix на &quot;Оптимизировать&quot; в браузере" />
-    <option name="LAST_COMMIT_MESSAGE" value="Beta - Замена distance_matrix на &quot;Оптимизировать&quot; в браузере" />
+    <MESSAGE value="Завершен основной функционал Alpha and Omega" />
+    <option name="LAST_COMMIT_MESSAGE" value="Завершен основной функционал Alpha and Omega" />
   </component>
 </project>

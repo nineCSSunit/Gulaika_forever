@@ -2,6 +2,7 @@ import json
 import sys
 import asyncio
 import logging
+from random import choice
 
 
 from aiogram import Bot, Dispatcher, html, F
@@ -64,6 +65,17 @@ class PromptStates(StatesGroup):
     waiting_for_cafe_choice = State()  # Ожидание выбора кафе
 
 
+
+
+@dp.message(Command("start"), F.chat.type.in_({"group", "supergroup"}))
+async def start_command_in_group(message: Message):
+    bot_username = (await bot.get_me()).username
+    # Проверяем, упомянут ли бот, если команда вызвана в группе
+    if message.text == "/start" or message.text == f"/start@{bot_username}":
+        await message.reply("Бот активирован в группе!")
+
+
+
 # Хендлер на команду /prompt
 @dp.message(Command('prompt'))
 async def handle_prompt_command(message: Message, state: FSMContext):
@@ -99,6 +111,26 @@ async def request_next_info(data, message: Message, state: FSMContext):
         'метро': (PromptStates.waiting_for_metro, "Пожалуйста, укажите ближайшее метро."),
         'район': (PromptStates.waiting_for_area, "Пожалуйста, укажите район.")
     }
+
+    # Загружаем фразы из JSON-файла
+    def load_phrases(file_path="phrases.json"):
+        with open(file_path, "r", encoding="utf-8") as file:
+            return json.load(file)
+
+    # Обновление словаря prompts случайной фразой
+    def update_prompts(phrases):
+        for key1 in prompts:
+            state, _ = prompts[key1]  # Сохраняем текущее состояние
+            random_phrase = choice(phrases[key1])  # Берём случайную фразу из JSON
+            prompts[key1] = (state, random_phrase)  # Обновляем значение
+
+    # Загрузка фраз из JSON и обновление prompts
+    phrases = load_phrases()
+    update_prompts(phrases)
+
+    # Теперь prompts содержит случайные фразы
+    print(prompts)
+
 
     for key, (next_state, prompt_message) in prompts.items():
         if data.get(key) == 'нет информации':
@@ -212,8 +244,7 @@ async def handle_cafe_choice(callback_query: CallbackQuery, state: FSMContext):
     if selected_cafe:
         # Добавляем выбранное кафе в список "места"
         if 'место' in prompt_data:
-            prompt_data['место'] += f", {selected_cafe['name']}"
-            print(prompt_data)
+            prompt_data['место'] += f", {selected_cafe['name'].replace(",", "")}"
         else:
             prompt_data['место'] = selected_cafe['name']
             print(prompt_data)
@@ -281,6 +312,7 @@ async def finish_process(message: Message, state: FSMContext):
     await message.answer("\n".join(points))
 
     link = get_good_route(generate_map_link([start_point] + intermediate_points + [end_point]))
+    print(link)
     await message.answer(link)
 
     await state.clear()
@@ -384,11 +416,11 @@ async def enter_end_point(message: Message, state: FSMContext):
     # Заканчиваем состояние
     await state.clear()
 
-
+"""
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
     await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
-
+"""
 
 async def main() -> None:
     # Initialize Bot instance with default bot properties which will be passed to all API calls

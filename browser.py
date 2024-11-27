@@ -30,7 +30,7 @@ def get_good_route(link):
         # chrome_options.add_argument("--disable-gpu")  # отключаем GPU для headless режима
 
         # Путь к драйверу
-        path_to_driver = r"C:\Users\SuperHaka\Desktop\chromedriver-win64\chromedriver.exe"
+        path_to_driver = r"C:\Users\abrac\Desktop\chromedriver-win64\chromedriver.exe"
 
         # Инициализация службы ChromeDriver
         service = Service(path_to_driver)

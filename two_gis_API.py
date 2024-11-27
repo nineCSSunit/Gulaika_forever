@@ -159,6 +159,9 @@ def generate_map_link(places):
         return None
 
 
+
+
+
 def search_for_cafe(cafe_name, poligon_points_list):
     address_names = None
 
