@@ -1,12 +1,9 @@
-
 """
 
 Этот модуль организует запросы к браузеру, осноная функция - получение оптимизированного маршрута.
 
 
 """
-
-
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -51,19 +48,30 @@ def get_good_route(link):
         try:
             # Попытка найти кнопку "Оптимизировать" и нажать на неё
             optimize_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, "//div[@class='route-form-view__optimize' and @role='button']"))
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//div[@class='route-form-view__optimize' and @role='button']",
+                    )
+                )
             )
             optimize_button.click()
 
             # Попытка найти кнопку "Да" и нажать на неё
             yes_button = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable(
-                    (By.XPATH, "//div[@class='route-optimize-banner__button']//button[.//span[text()='Да']]"))
+                    (
+                        By.XPATH,
+                        "//div[@class='route-optimize-banner__button']//button[.//span[text()='Да']]",
+                    )
+                )
             )
             yes_button.click()
 
             # Ждать, пока обновится страница и изменится ссылка
-            WebDriverWait(driver, 10).until(EC.url_changes(initial_url)) # была ошибка, стояло url, не обозначенное ранее.
+            WebDriverWait(driver, 10).until(
+                EC.url_changes(initial_url)
+            )  # была ошибка, стояло url, не обозначенное ранее.
 
         except Exception as e:
             print(e)
@@ -81,4 +89,3 @@ def get_good_route(link):
         return current_url
     except Exception as e:
         return e
-

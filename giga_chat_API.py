@@ -1,10 +1,8 @@
-
 """
 
 Этот модуль организует запросы к API Giga Chat
 
 """
-
 
 import requests
 import uuid
@@ -13,9 +11,9 @@ import time
 import urllib3
 
 
-urllib3.disable_warnings()   # что бы мин.циры не капало на мозги, так как мы не проверяем ?индефикатор?
-                                # Честно, советую пофиксить, так как выглядит как лютый траб с безой
-                                # To Do : Разобраться с этими предупрежедениями
+urllib3.disable_warnings()  # что бы мин.циры не капало на мозги, так как мы не проверяем ?индефикатор?
+# Честно, советую пофиксить, так как выглядит как лютый траб с безой
+# To Do : Разобраться с этими предупрежедениями
 
 
 ####################################################       Считывание конфигурационного файла      ####################
@@ -27,21 +25,14 @@ GIGACHAT_API_KEY = config["GIGACHAT_API_KEY"]
 
 ####################################################       Нейронки         ############################################
 
-"""                              На самом деле Гига чат просит кодировать токен .... Но нам пофек, тем не мение,  нужно фиксить 
-###  Кодируем ключ тут   ###
-
-base64_credentials = base64.b64encode(GIGACHAT_API_KEY.encode('utf-8')).decode('utf-8')   #если не получится убери utf
-
-"""
 
 # Глобальные переменные для хранения временного токена и времени его истечения
 giga_token = None
 token_expires_at = 0  # Время истечения токена в секундах
 
 
-
 #                                       Получение временного токена
-def get_token(base64_credentials):
+def get_token(token):
     #                                   Создание индентификатора UUID
     rq_uid = str(uuid.uuid4())
 
@@ -53,7 +44,7 @@ def get_token(base64_credentials):
         "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json",
         "RqUID": rq_uid,
-        "Authorization": f"Basic {base64_credentials}",
+        "Authorization": f"Basic {token}",
     }
 
     #               Тело запроса
@@ -77,7 +68,9 @@ def get_valid_token(api_key):
         response = get_token(api_key)
         if response != 1:
             giga_token = response.json().get("access_token")
-            token_expires_at = response.json().get("expires_at")  # Время истечения в секундах
+            token_expires_at = response.json().get(
+                "expires_at"
+            )  # Время истечения в секундах
             return giga_token
         else:
             print("Ошибка при получении токена")
@@ -87,6 +80,7 @@ def get_valid_token(api_key):
 
 #       Получение ответа на текстовый запрос
 #       Возвращает ответ от api в виде текстовой строки
+
 
 def get_chat(user_message):
     get_valid_token(GIGACHAT_API_KEY)
@@ -135,10 +129,12 @@ def get_chat(user_message):
 # 2й - какой критерий мы просим найти
 # На выходе выдает строку - ответ от API
 def prompt_processing(prompt, key1, key2):
-    with open("responce.json", 'r', encoding="utf-8") as f:
-        d = json.load(f) #получение словаря промтов
+    with open("responce.json", "r", encoding="utf-8") as f:
+        d = json.load(f)  # получение словаря промтов
         print(d[key1][key2])
-        answer = get_chat(prompt + d[key1][key2]).json()["choices"][0]["message"]["content"]
+        answer = get_chat(prompt + d[key1][key2]).json()["choices"][0]["message"][
+            "content"
+        ]
         print(answer)
         return answer
 
@@ -146,9 +142,11 @@ def prompt_processing(prompt, key1, key2):
 # получение словаря
 def slovarik(data):
     ans = {}
-    for i in data.split('\n'):
-        ans[i.split(': ')[0]] = i.split(': ')[1]
+    for i in data.split("\n"):
+        ans[i.split(": ")[0]] = i.split(": ")[1]
+    ans["место"] = ans["место"].replace(", ", ";")
     return ans
+
 
 # Функция основного распознования , УСТАРЕЛА, заменена на prompt_processing
 def general_recognition(prompt):
@@ -175,6 +173,7 @@ def general_recognition(prompt):
         data_general[s[0]] = value
     return data_general
 
+
 # Функция предложения кафе в районе
 def cafe(cafe, place):
     prompt = (
@@ -185,12 +184,15 @@ def cafe(cafe, place):
     answer = get_chat(prompt)
     return answer.json()["choices"][0]["message"]["content"]
 
+
 # Функция предложения интересных мест пользователю
 def interesting_places(data):
     places = data["место"]
     print(places)
-    prompt = (f"{places} по заданным местам предложи мне по одному интересному месту, которое можно посмотреть в выше перечислленых местах. "
-              f"выведи в формате: Место: интересное место. Каждое новое место выводи с новой строки")
+    prompt = (
+        f"{places} по заданным местам предложи мне по одному интересному месту, которое можно посмотреть в выше перечислленых местах. "
+        f"выведи в формате: Место: интересное место. Каждое новое место выводи с новой строки"
+    )
     ans = get_chat(prompt).json()["choices"][0]["message"]["content"]
     print(ans)
     print(type(ans))
@@ -203,13 +205,10 @@ def interesting_places(data):
     return ans
 
 
-
 def place_of_intrerest(data_general):
     places = data_general["место"]
     print(places)
-    prompt = (
-        f"Представь, что ты гид по Москве. Тебе нужно сказать мне, что конкретно можно интересного посмотреть 1 обьект интереса в районе {places} Выведи в формате -'Место': - 'Объект инетереса', например Кремль : - ГУМ "
-    )
+    prompt = f"Представь, что ты гид по Москве. Тебе нужно сказать мне, что конкретно можно интересного посмотреть 1 обьект интереса в районе {places} Выведи в формате -'Место': - 'Объект инетереса', например Кремль : - ГУМ "
 
     # Получаем ответ
     answer = get_chat(prompt)
@@ -220,9 +219,9 @@ def place_of_intrerest(data_general):
     text = answer.json()["choices"][0]["message"]["content"]
 
     data_places_interest = {}
-    for i in text.split('\n\n'):
-        i = i.split(':\n')
-        data_places_interest[i[0].strip(':')] = i[1].strip('-').split(';\n- ')
+    for i in text.split("\n\n"):
+        i = i.split(":\n")
+        data_places_interest[i[0].strip(":")] = i[1].strip("-").split(";\n- ")
     print(data_places_interest)
     """
     # Разбиваем текст по строкам и пробелам
@@ -243,6 +242,7 @@ def place_of_intrerest(data_general):
     return data_places_interest
     """
     return data_places_interest
+
 
 """
 prompt = "Привет, я хочу прогуляться по ценрту Москвы. Хочу зайти в кремль, парк горького, потом перекусить в италианском кафе, и на последок посмотреть закат с крыши небосркеба в москва сити"
