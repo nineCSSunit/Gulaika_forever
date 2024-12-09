@@ -42,6 +42,29 @@ with open("phrases.json", "r", encoding="utf-8") as phrases_file:
 
 TOKEN = config["TELEGRAM_TOKEN"]
 
+####################################################        Логирование         ########################################
+
+
+
+class Logger:
+    def __init__(self, file_path):
+        self.terminal = sys.stdout
+        self.log = open(file_path, "a")
+
+    def write(self, message):
+        self.terminal.write(message)  # Печать в консоль
+        self.log.write(message)  # Запись в файл
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+
+# Перенаправляем stdout
+sys.stdout = Logger("log.txt")
+
+
+
+
 ######################################################      Ботоводство     ############################################
 
 
@@ -70,6 +93,7 @@ class PromptStates(StatesGroup):
     waiting_for_area = State()  # Ожидание района
     waiting_for_eat = State()  # Ожидание информации о кафе
     waiting_for_cafe_choice = State()  # Ожидание выбора кафе
+    waiting_for_weather = State()   #Рекомендации Интересных мест
     waiting_for_recommendations = State()   #Рекомендации Интересных мест
 
 
@@ -257,8 +281,9 @@ async def offer_cafes(message: Message, state: FSMContext):
     print(points)
 
     # Получаем список кафе вокруг заданной точки
-    cafes = search_for_cafe_ver_2(cafe_type, points)
+    cafes, cashed_cordinates = search_for_cafe_ver_2(cafe_type, points)
     await state.update_data(cached_cafes=cafes)
+    await state.update_data(cashed_cordinates=cashed_cordinates)
 
     # Проверка, если кафе не найдены
     if not cafes:
@@ -341,10 +366,66 @@ async def handle_cafe_choice(callback_query: CallbackQuery, state: FSMContext):
 
         # Проверяем, есть ли еще информация, которую нужно запросить
         if 'конечная точка' in prompt_data and 'начальная точка' in prompt_data:
-            await state.set_state(PromptStates.waiting_for_recommendations)
-            await send_next_recommendation(callback_query.message, state)
+            await state.set_state(PromptStates.waiting_for_weather)
+            await send_weather_chose(callback_query.message, state)
         else:
             await request_next_info(prompt_data, callback_query.message, state)
+
+
+
+
+
+
+@dp.message(PromptStates.waiting_for_weather)
+async def send_weather_chose(entity, state: FSMContext):
+    user_data = await state.get_data()
+    coordinates = user_data["cashed_cordinates"]
+    date = datetime.now().strftime("%Y-%m-%d")
+    def create_weather_keyboard():
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="В помещении", callback_data="weather_yes"),
+             InlineKeyboardButton(text="На улице", callback_data="weather_no")]
+        ])
+        return keyboard
+
+    avg_lat = sum(lat for lat, lon in coordinates) / len(coordinates)
+    avg_lon = sum(lon for lat, lon in coordinates) / len(coordinates)
+    date = str(datetime.now().strftime("%Y-%m-%d"))
+    weather = str(get_weather_forecast(avg_lat, avg_lon, date))
+
+    text = (
+        "🌦️ Вот прогноз погоды на ближайшие часы:\n\n"
+        f"{weather}\n"
+        "Реши, куда ты хочешь отправиться — в помещение или на улицу! 😊"
+    )
+    keyboard = create_weather_keyboard()
+    await entity.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
+
+
+# Хендлер для обработки выбора пользователя на этапе погоды
+@router.callback_query(
+    StateFilter(PromptStates.waiting_for_weather),
+    F.data.in_(["weather_yes", "weather_no"])
+)
+async def handle_weather_choice(callback_query: CallbackQuery, state: FSMContext):
+    if callback_query.data == "weather_yes":
+        await state.update_data(weather=False)
+        await callback_query.answer("Погода учтена")
+        await callback_query.message.answer("Погода учтена")
+        await state.set_state(PromptStates.waiting_for_recommendations)
+        await send_next_recommendation(callback_query.message, state)
+
+
+
+    elif callback_query.data == "weather_no":
+        await state.update_data(weather=True)
+        await callback_query.answer("Погода учтена")
+        await callback_query.message.answer("Погода учтена")
+        await state.set_state(PromptStates.waiting_for_recommendations)
+        await send_next_recommendation(callback_query.message, state)
+
+
 
 
 
@@ -375,9 +456,8 @@ async def aaaa(message, state: FSMContext):
 @dp.message(PromptStates.waiting_for_recommendations)
 async def send_next_recommendation(entity, state: FSMContext):
     user_data = await state.get_data()
-    prompt_data = user_data["prompt_data"]
-    current_index = prompt_data.get("current_index", 0)
-
+    current_index = user_data.get("current_index", 0)
+    print(user_data)
 
     def create_recommendation_keyboard():
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -396,8 +476,8 @@ async def send_next_recommendation(entity, state: FSMContext):
         )
         keyboard = create_recommendation_keyboard()
         await entity.answer(text, reply_markup=keyboard, parse_mode="Markdown")
-        prompt_data["current_index"] = current_index + 1
-        await state.update_data(prompt_data=prompt_data)
+        current_index += 1
+        await state.update_data(current_index=current_index)
     else:
         await entity.answer("Вы просмотрели все доступные рекомендации.")
 
@@ -415,22 +495,27 @@ async def send_next_recommendation(entity, state: FSMContext):
 async def handle_recommendation_choice(callback_query: CallbackQuery, state: FSMContext):
     # Считываем значение состояния
     user_data = await state.get_data()
-    prompt_data = user_data["prompt_data"]
-    current_index = prompt_data.get("current_index", 0)
+    rec_data = user_data.get("recomendation_cords", "")
+    current_index = user_data.get("current_index", 0)
+
+    print(user_data)
 
     if callback_query.data == "add":
         added = recommendations[current_index - 1]['coords']
-        prompt_data["место"] += f";{added}"
-        await state.update_data(prompt_data=prompt_data)
+        rec_data += f";{added}"
+        await state.update_data(recomendation_cords=rec_data)
         await callback_query.answer("Добавлено!")
+        await callback_query.message.answer("Добавлено!")
         await send_next_recommendation(callback_query.message, state)
 
     elif callback_query.data == "next":
         await callback_query.answer("Следующая рекомендация!")
+        await callback_query.message.answer("Следующая рекомендация!")
         await send_next_recommendation(callback_query.message, state)
 
     elif callback_query.data == "finish":
         await callback_query.answer("Вы закончили выбор!")
+        await callback_query.message.answer("Вы закончили выбор!")
         await finish_process(callback_query.message, state)
 
 
@@ -469,19 +554,28 @@ async def handle_eat(message: Message, state: FSMContext):
 async def finish_process(message: Message, state: FSMContext):
     user_data = await state.get_data()
     prompt_data = user_data["prompt_data"]
+    rec_data = user_data["recomendation_cords"]
+    cashed_cordinates = user_data["cashed_cordinates"]
+
 
     await message.answer(f"Спасибо! Вот окончательная информация:\n{prompt_data}")
     await message.answer("Вот ваш маршрут: ")
 
     start_point = prompt_data["начальная точка"]
-    intermediate_points = prompt_data.get("место", "").split(";")
+    #intermediate_points = prompt_data.get("место", "").split(";")
     end_point = prompt_data["конечная точка"]
+
+    cashed_cordinates = ";".join(f"({lat}, {lon})" for lat, lon in cashed_cordinates)
+
+    intermediate_points = str(cashed_cordinates + rec_data).split(";")
 
     points = (
         [f"Начальная: {start_point}"]
         + [f"Промежуточная: {point}" for point in intermediate_points]
         + [f"Конечная: {end_point}"]
     )
+
+
 
     await message.answer("\n".join(points))
 

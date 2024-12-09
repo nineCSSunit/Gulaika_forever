@@ -47,6 +47,7 @@ def get_cords(location_name):
         match = re.match(r"\(([^,]+), ([^)]+)\)", location_name)
         if match:
             location_cords = [float(match.group(1)), float(match.group(2))]
+            print("Сэкономлен 1 запрос")
         return location_cords
 
     location_name = "Москва, " + location_name
@@ -132,6 +133,7 @@ def search_for_place(input_text):
 
     pattern = r"^\(-?\d+\.\d+,\s*-?\d+\.\d+\)$"
     if re.match(pattern, input_text.strip()):
+        print("Сэкономлен 1 запрос")
         return input_text
 
     # Запросы к API
@@ -214,6 +216,7 @@ def search_for_cafe(cafe_name, poligon_points_list):
 
 def get_scaled_polygon_string(locations, scale_factor=1.3):
     coordinates = []
+    cached_coordinates = []
     for place in locations:
         address = search_for_place(place)  # Получаем адрес точки
         coords = get_cords(address)  # Получаем координаты точки [lat, lon]
@@ -221,6 +224,9 @@ def get_scaled_polygon_string(locations, scale_factor=1.3):
         coordinates.append(
             (round(coords[1], 6), round(coords[0], 6))
         )  # (долгота, широта)
+        cached_coordinates.append(
+            (round(coords[0], 4), round(coords[1], 4))
+        )
 
     if len(coordinates) < 3:
         raise ValueError("Для построения полигона необходимо минимум 3 точки.")
@@ -243,7 +249,7 @@ def get_scaled_polygon_string(locations, scale_factor=1.3):
     polygon_coords = ",".join(f"{lon} {lat}" for lon, lat in scaled_coordinates)
     polygon_wkt = f"POLYGON(({polygon_coords}))"
 
-    return polygon_wkt
+    return polygon_wkt, cached_coordinates
 
 
 def search_for_cafe_ver_2(cafe_name, poligon_points_list):
@@ -252,7 +258,7 @@ def search_for_cafe_ver_2(cafe_name, poligon_points_list):
     # Обработка input_text
     input_text = str(cafe_name)
 
-    polygon_string = get_scaled_polygon_string(poligon_points_list)
+    polygon_string, cashed_cordinates = get_scaled_polygon_string(poligon_points_list)
     print(polygon_string)
 
     # Запросы к API
@@ -276,7 +282,7 @@ def search_for_cafe_ver_2(cafe_name, poligon_points_list):
         print(f"Ошибка обработки данных: {e}")
         return e
 
-    return address_names
+    return address_names, cashed_cordinates
 
 
 # search_for_cafe("Суши бар", ["Кремль", "МХТ Имени чехова", "Третяковская галлерея "])
