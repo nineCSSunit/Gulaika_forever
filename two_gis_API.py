@@ -7,7 +7,7 @@
 """
 
 from time import perf_counter_ns
-
+from shapely.geometry import Polygon, Point
 import requests
 import json
 import re
@@ -251,7 +251,6 @@ def get_scaled_polygon_string(locations, scale_factor=1.3):
 
     return polygon_wkt, cached_coordinates
 
-
 def search_for_cafe_ver_2(cafe_name, poligon_points_list):
     address_names = None
 
@@ -282,7 +281,7 @@ def search_for_cafe_ver_2(cafe_name, poligon_points_list):
         print(f"Ошибка обработки данных: {e}")
         return e
 
-    return address_names, cashed_cordinates
+    return address_names, cashed_cordinates, polygon_string
 
 
 # search_for_cafe("Суши бар", ["Кремль", "МХТ Имени чехова", "Третяковская галлерея "])
@@ -290,9 +289,9 @@ def search_for_cafe_ver_2(cafe_name, poligon_points_list):
 
 """
 input_text = "Суши бар"
-polygon_string = get_scaled_polygon_string(['Большой Театр', 'Красная Площадь', 'Третьяковка', 'ГЭС-2'])
+polygon_string, aaa = get_scaled_polygon_string(['третьяковка', 'бауманский сад', 'гэс-2'])
 print(polygon_string)
-
+print(aaa)
 response_place = requests.get(
         f"https://catalog.api.2gis.com/3.0/items?q={input_text}&fields=items.description,items.reviews&polygon={polygon_string}&page_size=3&key={API_KEY}"
     )
@@ -300,4 +299,5 @@ response_place = requests.get(
 # Преобразование ответа в JSON
 response_place = response_place.json()
 print(response_place)
+
 """

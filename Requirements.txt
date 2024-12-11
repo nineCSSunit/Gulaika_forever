@@ -3,3 +3,5 @@ requests
 black
 aiogram
 selenium
+psycopg2
+shapely

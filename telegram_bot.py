@@ -1,5 +1,6 @@
 import json
 import sys
+import os
 import asyncio
 import logging
 from random import choice
@@ -24,13 +25,10 @@ from aiogram import Router
 from two_gis_API import search_for_cafe_ver_2
 from browser import get_good_route
 from two_gis_API import generate_map_link
-from giga_chat_API import general_recognition
-from giga_chat_API import place_of_intrerest
 from giga_chat_API import prompt_processing
 from giga_chat_API import slovarik
-from giga_chat_API import interesting_places
-from  weather import get_weather_forecast
-
+from weather import get_weather_forecast
+from recomendations import get_recommendations
 
 #####################################################       Считывание конфигурационного файла      ####################
 
@@ -45,10 +43,14 @@ TOKEN = config["TELEGRAM_TOKEN"]
 ####################################################        Логирование         ########################################
 
 
-
 class Logger:
     def __init__(self, file_path):
         self.terminal = sys.stdout
+
+        # Проверка на существование файла и создание, если его нет
+        if not os.path.exists(file_path):
+            with open(file_path, 'w'): pass  # Это создаст пустой файл, если он не существует
+
         self.log = open(file_path, "a")
 
     def write(self, message):
@@ -59,10 +61,9 @@ class Logger:
         self.terminal.flush()
         self.log.flush()
 
+
 # Перенаправляем stdout
 sys.stdout = Logger("log.txt")
-
-
 
 
 ######################################################      Ботоводство     ############################################
@@ -85,6 +86,7 @@ class PointForm(StatesGroup):
 
 
 class PromptStates(StatesGroup):
+    waiting_for_start = State()
     waiting_for_prompt = State()  # Ожидание начального промпта от пользователя
     waiting_for_start_point = State()  # Ожидание начальной точки
     waiting_for_end_point = State()  # Ожидание конечной точки
@@ -136,7 +138,40 @@ dp.message.middleware(TaskManagerMiddleware())
 @dp.message(Command("start"))
 async def start_handler(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Привет! Напиши что-нибудь, чтобы я среагировал.")
+    user_name = message.from_user.username
+    text = (
+        f"Привет, {user_name}! 👋\n\n"
+        f"Я бот, который помогает составить идеальную прогулку. Просто расскажи, что ты хочешь: куда пойти, что посмотреть, или какое место ищешь. Чем больше информации ты дашь сразу, тем точнее будет результат. Если чего-то не хватит, я обязательно спрошу!\n\n"
+        f"✨ Что я умею?\n"
+        f"- Помогу выбрать места для прогулки: парки, музеи, уютные кафе и многое другое.\n"
+        f"- Составлю маршрут с учётом твоих предпочтений.\n"
+        f"- Расскажу о погоде в районе прогулки.\n"
+        f"- Если мне не хватит информации, я уточню детали, чтобы результат был точным.\n\n"
+        f"✅ Просто напиши мне, куда хочешь пойти или что ищешь, и мы начнём!"
+        "\n\n"
+        f"Начнём? 🌿\n"
+        f"Выхови get_walk что бы начать составлять прогулку, или нажми на кнопочку "
+    )
+
+    def create_start_keyboard():
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Начать прогулку 🌿", callback_data="get_walk")]
+        ])
+        return keyboard
+
+    keyboard = create_start_keyboard()
+    await message.answer(text, reply_markup=keyboard)
+    await state.set_state(PromptStates.waiting_for_start)
+
+
+@router.callback_query(StateFilter(PromptStates.waiting_for_start))
+async def handle_walk_start(callback_query: CallbackQuery, state: FSMContext):
+    if callback_query.data == "get_walk":
+        await callback_query.message.answer(
+            "Расскажите, какой прогулкой вы хотите насладиться? Чем больше деталей, тем лучше! ✨🌍\n(Например: где, сколько времени, какие места вам интересны, где бы вы перекусили и т. д.)")
+        await state.set_state(PromptStates.waiting_for_prompt)
+
+
 
 
 
@@ -155,16 +190,16 @@ async def start_command_in_group(message: Message):
 async def cancel_handler(message: Message, state: FSMContext):
     # Сбрасываем состояние и отменяем текущую задачу
     await state.clear()
-    await message.answer("Все действия отменены.")
+    await message.answer("Все действия отменены. Вызови start, что бы начать с начала!")
 
 
 
 
 
 # Хендлер на команду /prompt
-@dp.message(Command("prompt"))
+@dp.message(Command("get_walk"))
 async def handle_prompt_command(message: Message, state: FSMContext):
-    await message.answer("Введите свой промпт:")
+    await message.answer("Расскажите, какой прогулкой вы хотите насладиться? Чем больше деталей, тем лучше! ✨🌍\n(Например: где, сколько времени, какие места вам интересны, где бы вы перекусили и т. д.)")
     await state.set_state(PromptStates.waiting_for_prompt)
 
 
@@ -172,15 +207,14 @@ async def handle_prompt_command(message: Message, state: FSMContext):
 @dp.message(PromptStates.waiting_for_prompt)
 async def handle_prompt_input(message: Message, state: FSMContext):
     prompt_text = message.text  # Получаем введенный пользователем текст
-    await message.answer(f"Ваш промпт сохранен: {prompt_text}")
+    print(f"\n{prompt_text}\n")
 
     # Выполняем первичную обработку текста
     d = prompt_processing(prompt_text, "base", "base")
-    await message.answer(d)
+    print(f"\n{d}\n")
 
     # Обработка и сохранение словаря
     d = slovarik(d)
-    await message.answer(str(d))
     await state.update_data(prompt_data=d)
 
 
@@ -281,9 +315,15 @@ async def offer_cafes(message: Message, state: FSMContext):
     print(points)
 
     # Получаем список кафе вокруг заданной точки
-    cafes, cashed_cordinates = search_for_cafe_ver_2(cafe_type, points)
+    cafes, cashed_cordinates, polygon_string = search_for_cafe_ver_2(cafe_type, points)
+    print(cafes)
+    print(cashed_cordinates)
+    print(polygon_string)
+
+
     await state.update_data(cached_cafes=cafes)
     await state.update_data(cashed_cordinates=cashed_cordinates)
+    await state.update_data(cached_polygon=polygon_string)
 
     # Проверка, если кафе не найдены
     if not cafes:
@@ -429,7 +469,10 @@ async def handle_weather_choice(callback_query: CallbackQuery, state: FSMContext
 
 
 
-# Пример данных с рекомендациями
+
+
+
+"""# Пример данных с рекомендациями
 recommendations = [
     {"coords": (55.7558, 37.6176), "address": "Красная площадь, 1",
      "description": "Красная площадь - сердце Москвы и знаковое место России, которое окружают величественные архитектурные сооружения, включая Кремль и Собор Василия Блаженного. Здесь проходят важнейшие мероприятия страны."},
@@ -441,7 +484,7 @@ recommendations = [
      "description": "Зарядье - современный парк с инновационными ландшафтами, концертным залом и уникальным стеклянным мостом, который нависает над Москвой-рекой, предлагая захватывающий вид."},
     {"coords": (55.7602, 37.6184), "address": "Большой театр",
      "description": "Большой театр - один из самых известных оперных и балетных театров мира, знаменитый своей роскошной сценой, богатой историей и выдающимися спектаклями."}
-]
+]"""
 
 
 
@@ -457,7 +500,14 @@ async def aaaa(message, state: FSMContext):
 async def send_next_recommendation(entity, state: FSMContext):
     user_data = await state.get_data()
     current_index = user_data.get("current_index", 0)
+    recommendations = user_data.get("recommendations", None)
+
+    if recommendations is None:  # Если рекомендаций нет в контексте
+        polygon_string = user_data["cached_polygon"]  # Получаем cached_polygon из контекста
+        recommendations = get_recommendations(polygon_string)  # Получаем рекомендации
+        await state.update_data(recommendations=recommendations)  # Сохраняем в контексте
     print(user_data)
+    print(recommendations)
 
     def create_recommendation_keyboard():
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -471,15 +521,21 @@ async def send_next_recommendation(entity, state: FSMContext):
         recommendation = recommendations[current_index]
         text = (
             f"📍 **Рекомендация**:\n\n"
-            f"🏠 **{recommendation['description']}**\n"
+            f"✨ **{recommendation['name']}**\n\n"
+            f"🏠 Описание: **{recommendation['description']}**\n"
             f"📌 Адрес: {recommendation['address']}\n"
         )
+
+        # Добавляем URL, если он есть
+        if recommendation.get("url") and recommendation["url"].strip():
+            text += f"🔗 Подробнее: [Ссылка]({recommendation['url']})\n"
         keyboard = create_recommendation_keyboard()
         await entity.answer(text, reply_markup=keyboard, parse_mode="Markdown")
         current_index += 1
         await state.update_data(current_index=current_index)
     else:
-        await entity.answer("Вы просмотрели все доступные рекомендации.")
+        await entity.answer("Либо я еще не знаю интересных мест в районе вашей прогулки, либо вы просмотрели все доступные рекомендации.\n"
+                            "Для завершения, нажмите 'Закончить выбор')")
 
         return
 
@@ -497,6 +553,7 @@ async def handle_recommendation_choice(callback_query: CallbackQuery, state: FSM
     user_data = await state.get_data()
     rec_data = user_data.get("recomendation_cords", "")
     current_index = user_data.get("current_index", 0)
+    recommendations = user_data.get("recommendations", None)
 
     print(user_data)
 
@@ -557,12 +614,12 @@ async def finish_process(message: Message, state: FSMContext):
     rec_data = user_data["recomendation_cords"]
     cashed_cordinates = user_data["cashed_cordinates"]
 
+    await message.answer("Спасибо, я составляю тебе маршрут, подожи немного)")
+    print(f"\n{prompt_data}\n")
 
-    await message.answer(f"Спасибо! Вот окончательная информация:\n{prompt_data}")
-    await message.answer("Вот ваш маршрут: ")
 
     start_point = prompt_data["начальная точка"]
-    #intermediate_points = prompt_data.get("место", "").split(";")
+    intermediate_points_show = prompt_data.get("место", "").split(";")
     end_point = prompt_data["конечная точка"]
 
     cashed_cordinates = ";".join(f"({lat}, {lon})" for lat, lon in cashed_cordinates)
@@ -575,10 +632,17 @@ async def finish_process(message: Message, state: FSMContext):
         + [f"Конечная: {end_point}"]
     )
 
+    point_show =(
+        [f"Начальная: {start_point}"]
+        + [f"Промежуточная: {point}" for point in intermediate_points_show]
+        + [f"Конечная: {end_point}"]
+    )
 
 
-    await message.answer("\n".join(points))
+    await message.answer("Вот ваш маршрут: ")
 
+    await message.answer("\n".join(point_show))
+    await message.answer("Сейчас пришлю ссылочку на маршрут!")
     link = get_good_route(
         generate_map_link([start_point] + intermediate_points + [end_point])
     )

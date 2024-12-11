@@ -132,7 +132,7 @@ def prompt_processing(prompt, key1, key2):
     with open("responce.json", "r", encoding="utf-8") as f:
         d = json.load(f)  # получение словаря промтов
         print(d[key1][key2])
-        answer = get_chat(prompt + d[key1][key2]).json()["choices"][0]["message"][
+        answer = get_chat(d[key1][key2] + prompt).json()["choices"][0]["message"][
             "content"
         ]
         print(answer)
