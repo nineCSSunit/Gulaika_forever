@@ -7,7 +7,7 @@
 """
 
 from time import perf_counter_ns
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import transform
 import requests
 import json
@@ -253,6 +253,10 @@ def get_scaled_polygon_string(locations, scale_factor=1.3):
     # Проверяем и исправляем полигон, если он некорректный
     if not polygon.is_valid:
         polygon = polygon.buffer(0)  # Исправляет самопересечения
+
+    # Если результат — MultiPolygon, выбираем самый большой полигон
+    if isinstance(polygon, MultiPolygon):
+        polygon = max(polygon.geoms, key=lambda p: p.area)
 
     # Упрощаем полигон для большей корректности
     simplified_polygon = polygon.simplify(0.00001, preserve_topology=True)

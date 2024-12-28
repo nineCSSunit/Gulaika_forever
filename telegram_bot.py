@@ -768,7 +768,9 @@ async def finish_process(message: Message, state: FSMContext):
 
     await message.answer("\n".join(point_show))
     await message.answer("Сейчас пришлю ссылочку на маршрут!")
-    link = generate_map_link([start_point] + intermediate_points + [end_point])
+    link = get_good_route(
+        generate_map_link([start_point] + intermediate_points + [end_point])
+    )
     print(link)
     await message.answer(link)
 
