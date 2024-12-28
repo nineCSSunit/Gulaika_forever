@@ -246,14 +246,12 @@ def place_of_intrerest(data_general):
 
 """
 prompt = "Привет, я хочу прогуляться по ценрту Москвы. Хочу зайти в кремль, парк горького, потом перекусить в италианском кафе, и на последок посмотреть закат с крыши небосркеба в москва сити"
-general_data = general_recognition(giga_token, prompt)
+general_data = prompt_processing(prompt, "base", "base")
 print(general_data)
-place_data = place_of_intrerest(giga_token, general_data)
 
-
-print(general_data, "\n\n\n", place_data)
-
+print(general_data)
 """
+
 """
 ### получение кафешек в районе ###
 if 'Где поесть' in data_general.keys():

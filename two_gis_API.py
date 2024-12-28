@@ -7,7 +7,8 @@
 """
 
 from time import perf_counter_ns
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon
+from shapely.ops import transform
 import requests
 import json
 import re
@@ -217,6 +218,7 @@ def search_for_cafe(cafe_name, poligon_points_list):
 def get_scaled_polygon_string(locations, scale_factor=1.3):
     coordinates = []
     cached_coordinates = []
+
     for place in locations:
         address = search_for_place(place)  # Получаем адрес точки
         coords = get_cords(address)  # Получаем координаты точки [lat, lon]
@@ -245,8 +247,19 @@ def get_scaled_polygon_string(locations, scale_factor=1.3):
     # Замыкаем полигон, добавляя первую точку в конец
     scaled_coordinates.append(scaled_coordinates[0])
 
-    # Форматируем координаты в строку WKT
-    polygon_coords = ",".join(f"{lon} {lat}" for lon, lat in scaled_coordinates)
+    # Создаем полигон
+    polygon = Polygon(scaled_coordinates)
+
+    # Проверяем и исправляем полигон, если он некорректный
+    if not polygon.is_valid:
+        polygon = polygon.buffer(0)  # Исправляет самопересечения
+
+    # Упрощаем полигон для большей корректности
+    simplified_polygon = polygon.simplify(0.00001, preserve_topology=True)
+
+    # Преобразуем обратно в WKT
+    valid_coordinates = [(round(coord[0], 6), round(coord[1], 6)) for coord in simplified_polygon.exterior.coords]
+    polygon_coords = ",".join(f"{lon} {lat}" for lon, lat in valid_coordinates)
     polygon_wkt = f"POLYGON(({polygon_coords}))"
 
     return polygon_wkt, cached_coordinates
