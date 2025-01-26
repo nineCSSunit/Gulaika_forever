@@ -71,9 +71,9 @@ def get_weather_forecast(lat, lon, date=None):
         six_hour_forecasts = [f for i, f in enumerate(forecasts) if i % 2 == 0]  # Пропускаем каждые 2-й прогноз (6 часов)
 
         # Если дата не указана, берем прогноз на сегодня и завтра
-        if not date:
+        if True:
             today = datetime.now().strftime('%Y-%m-%d')
-            tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+            tomorrow = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
             filtered_forecasts = [f for f in six_hour_forecasts if today in f["dt_txt"] or tomorrow in f["dt_txt"]]
             return format_weather_data(filtered_forecasts)
 

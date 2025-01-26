@@ -96,7 +96,7 @@ def get_chat(user_message):
                     "content": user_message,  #           содержание сообщения
                 }
             ],
-            "temperature": 1,  # температура генерации(насколько ответ случайный)(чем больше параметр, тем случайнее ответ)
+            "temperature": 0.1,  # температура генерации(насколько ответ случайный)(чем больше параметр, тем случайнее ответ)
             "top_p": 0.1,  # контроль разнообразия
             "n": 1,  # количество возвращаемых ответов
             "stream": False,  # потоковая ли передача(если ставим тру, то мы будем видеть генерацию ответа)
@@ -136,6 +136,8 @@ def prompt_processing(prompt, key1, key2):
             "content"
         ]
         print(answer)
+        if answer == "error":
+            return None
         return answer
 
 
@@ -244,13 +246,13 @@ def place_of_intrerest(data_general):
     return data_places_interest
 
 
-"""
+
 prompt = "Привет, я хочу прогуляться по ценрту Москвы. Хочу зайти в кремль, парк горького, потом перекусить в италианском кафе, и на последок посмотреть закат с крыши небосркеба в москва сити"
 general_data = prompt_processing(prompt, "base", "base")
 print(general_data)
 
 print(general_data)
-"""
+
 
 """
 ### получение кафешек в районе ###

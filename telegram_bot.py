@@ -301,16 +301,6 @@ async def handle_ready_choice(callback_query: CallbackQuery, state: FSMContext):
 
 
 
-
-
-
-
-
-
-
-
-
-
 @dp.message(Command("start"), F.chat.type.in_({"group", "supergroup"}))
 async def start_command_in_group(message: Message):
     bot_username = (await bot.get_me()).username
@@ -332,16 +322,30 @@ async def handle_prompt_command(message: Message, state: FSMContext):
 @dp.message(PromptStates.waiting_for_prompt)
 async def handle_prompt_input(message: Message, state: FSMContext):
     prompt_text = message.text  # Получаем введенный пользователем текст
-    print(f"\n{prompt_text}\n")
+    print(f"Received input: \n{prompt_text}\n")
 
-    # Выполняем первичную обработку текста
-    d = prompt_processing(prompt_text, "base", "base")
-    print(f"\n{d}\n")
+    # Обрабатываем промпт и проверяем на ошибки
+    try:
+        # Выполняем первичную обработку текста
+        d = prompt_processing(prompt_text, "base", "base")
+        print(f"\n{d}\n")
+
+        # Если функция возвращает None или словарь с ошибкой (адаптируйте условие под вашу логику)
+        if d is None:
+            # Отправляем сообщение об ошибке
+            await message.answer("❌ Некорректный ввод. Пожалуйста, введите запрос еще раз:")
+
+            # Остаемся в том же состоянии
+            await PromptStates.waiting_for_prompt.set()
+
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {str(e)}")
+        return
 
     # Обработка и сохранение словаря
     d = slovarik(d)
+    d['конечная точка'] = 'нет информации'
     await state.update_data(prompt_data=d)
-
 
     # Запрашиваем следующую недостающую информацию, если она есть
     await request_next_info(d, message, state)
